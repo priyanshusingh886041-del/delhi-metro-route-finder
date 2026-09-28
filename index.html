@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delhi Metro Route Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen p-4">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 mt-10">
+        <h1 class="text-2xl font-bold text-center text-red-600 mb-6">🚇 Delhi Metro Route</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">From</label>
+                <select id="startStation" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-gray-50"></select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">To</label>
+                <select id="endStation" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-gray-50"></select>
+            </div>
+
+            <button onclick="findRoute()" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-md hover:bg-red-700 transition">
+                Find Route
+            </button>
+        </div>
+
+        <div id="resultArea" class="mt-6 hidden p-4 bg-red-50 rounded-lg border border-red-100">
+            <h2 class="text-lg font-semibold text-red-800 mb-2">Shortest Route:</h2>
+            <p id="routeText" class="text-gray-700 leading-relaxed"></p>
+            <p id="stopsText" class="mt-3 text-sm text-gray-500 font-bold border-t pt-2 border-red-200"></p>
+        </div>
+    </div>
+
+    <script>
+        // The Brain: Real Central Delhi Metro Connections
+        // To add more stations, just continue linking them to their immediate neighbors!
+        const metroNetwork = {
+            // Major Interchanges
+            "Kashmere Gate": ["Chandni Chowk", "Lal Quila", "Shastri Park", "Tis Hazari"],
+            "Rajiv Chowk": ["New Delhi", "Patel Chowk", "Ramakrishna Ashram Marg", "Barakhamba Road"],
+            "Central Secretariat": ["Patel Chowk", "Udyog Bhawan", "Janpath", "Khan Market"],
+            "Mandi House": ["Barakhamba Road", "Supreme Court", "ITO", "Janpath"],
+            
+            // Yellow Line Segments
+            "Chandni Chowk": ["Kashmere Gate", "Chawri Bazar"],
+            "Chawri Bazar": ["Chandni Chowk", "New Delhi"],
+            "New Delhi": ["Chawri Bazar", "Rajiv Chowk"],
+            "Patel Chowk": ["Rajiv Chowk", "Central Secretariat"],
+            "Udyog Bhawan": ["Central Secretariat"],
+
+            // Blue Line Segments
+            "Karol Bagh": ["Jhandewalan"],
+            "Jhandewalan": ["Karol Bagh", "Ramakrishna Ashram Marg"],
+            "Ramakrishna Ashram Marg": ["Jhandewalan", "Rajiv Chowk"],
+            "Barakhamba Road": ["Rajiv Chowk", "Mandi House"],
+            "Supreme Court": ["Mandi House"],
+
+            // Violet Line Segments
+            "Lal Quila": ["Kashmere Gate", "Jama Masjid"],
+            "Jama Masjid": ["Lal Quila", "Delhi Gate"],
+            "Delhi Gate": ["Jama Masjid", "ITO"],
+            "ITO": ["Delhi Gate", "Mandi House"],
+            "Janpath": ["Mandi House", "Central Secretariat"],
+            "Khan Market": ["Central Secretariat"],
+
+            // Red Line Segments
+            "Shastri Park": ["Kashmere Gate"],
+            "Tis Hazari": ["Kashmere Gate"]
+        };
+
+        // Sort stations alphabetically for the dropdown menu
+        const stations = Object.keys(metroNetwork).sort();
+
+        window.onload = function() {
+            const startSelect = document.getElementById('startStation');
+            const endSelect = document.getElementById('endStation');
+            
+            stations.forEach(station => {
+                startSelect.add(new Option(station, station));
+                endSelect.add(new Option(station, station));
+            });
+            
+            // Set defaults so you can test immediately
+            startSelect.value = "Kashmere Gate";
+            endSelect.value = "Central Secretariat";
+        };
+
+        function findRoute() {
+            const start = document.getElementById('startStation').value;
+            const end = document.getElementById('endStation').value;
+            const resultArea = document.getElementById('resultArea');
+            const routeText = document.getElementById('routeText');
+            const stopsText = document.getElementById('stopsText');
+
+            resultArea.classList.remove('hidden');
+
+            if (start === end) {
+                routeText.innerHTML = "You are already at your destination!";
+                stopsText.innerHTML = "0 stops";
+                return;
+            }
+
+            // Pathfinding algorithm (Breadth-First Search)
+            let queue = [[start]];
+            let visited = new Set([start]);
+            let foundPath = null;
+
+            while (queue.length > 0) {
+                let path = queue.shift();
+                let currentStation = path[path.length - 1];
+
+                if (currentStation === end) {
+                    foundPath = path;
+                    break;
+                }
+
+                let neighbors = metroNetwork[currentStation] || [];
+                for (let neighbor of neighbors) {
+                    if (!visited.has(neighbor)) {
+                        visited.add(neighbor);
+                        queue.push([...path, neighbor]);
+                    }
+                }
+            }
+
+            if (foundPath) {
+                routeText.innerHTML = foundPath.join(' <span class="text-red-500 mx-1 font-bold">➔</span> ');
+                stopsText.innerHTML = `Total stations to pass: ${foundPath.length - 1}`;
+            } else {
+                routeText.innerHTML = "No route found.";
+                stopsText.innerHTML = "";
+            }
+        }
+    </script>
+</body>
+</html>
